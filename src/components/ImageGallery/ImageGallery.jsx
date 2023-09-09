@@ -2,7 +2,10 @@ import React, { Component } from 'react';
 import ImageGalleryItem from 'components/ImageGalleryItem/ImageGalleryItem';
 import Btn from 'components/Button/Button';
 import PropTypes from 'prop-types';
+import Loader from 'components/Loader/Loader';
+
 import { fetchImages } from 'api';
+import { Alert } from '@mui/material';
 
 const imagesOnPage = 12;
 
@@ -36,7 +39,6 @@ export class ImageGallery extends Component {
 
     if (prevState.currentPage < this.state.currentPage) {
       try {
-        this.setState({ status: 'pending' });
         const images = await fetchImages(
           this.props.name,
           this.state.currentPage,
@@ -68,17 +70,37 @@ export class ImageGallery extends Component {
   render() {
     return (
       <>
-        <ul className="gallery">
-          <ImageGalleryItem
-            state={this.state}
-            handleModalOpen={this.handleModalOpen}
-          ></ImageGalleryItem>
-        </ul>
-        <Btn
-          state={this.state}
-          loadMore={this.handleLoadMore}
-          imagesOnPage={imagesOnPage}
-        ></Btn>
+        {this.state.status === 'idle' ? null : (
+          <>
+            <ul className="gallery">
+              {this.state.status === 'pending' && <Loader />}
+              {this.state.status === 'rejected' && (
+                <Alert severity="error">Error! Reload page</Alert>
+              )}
+              {this.state.status === 'resolved' &&
+                (this.state.data.hits.length === 0 ? (
+                  <Alert severity="error">There are no images!</Alert>
+                ) : (
+                  this.state.data.hits.map(
+                    ({ webformatURL, id, tags, largeImageURL }) => (
+                      <ImageGalleryItem
+                        key={id}
+                        webformatURL={webformatURL}
+                        tags={tags}
+                        largeImageURL={largeImageURL}
+                        status={this.state.status}
+                      ></ImageGalleryItem>
+                    )
+                  )
+                ))}
+            </ul>
+            <Btn
+              state={this.state}
+              loadMore={this.handleLoadMore}
+              imagesOnPage={imagesOnPage}
+            ></Btn>
+          </>
+        )}
       </>
     );
   }
